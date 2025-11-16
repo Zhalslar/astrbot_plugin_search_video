@@ -1,22 +1,19 @@
 import os
+
 from bs4 import BeautifulSoup
-from astrbot.api.event import filter, AstrMessageEvent
+
+from astrbot import logger
+from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.star import Context, Star, StarTools, register
 from astrbot.core.config.astrbot_config import AstrBotConfig
 from astrbot.core.message.components import Image, Video
 from astrbot.core.utils.session_waiter import SessionController, session_waiter
-from astrbot import logger
-from .draw import VideoCardRenderer
+
 from .api import VideoAPI
+from .draw import VideoCardRenderer
 
 
-@register(
-    "astrbot_plugin_search_video",
-    "Zhalslar",
-    "视频搜索",
-    "v1.0.6",
-    "https://github.com/Zhalslar/astrbot_plugin_search_video",
-)
+@register("astrbot_plugin_search_video", "Zhalslar", "...", "...")
 class VideoPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
@@ -112,7 +109,7 @@ class VideoPlugin(Star):
                     )
                 )
             else:
-                await event.send(event.plain_result(f"正在下载 {title}..."))
+                await event.send(event.plain_result(f"正在下载: {raw_title}"))
                 logger.info(f"正在下载视频:{raw_title}")
                 data_path = await self.api.download_video(
                     video_id, str(self.plugin_data_dir)
