@@ -1,14 +1,17 @@
+import asyncio
 import os
+import platform
+import shutil
+import subprocess
 import sys
+
 import aiofiles
 import httpx
-import asyncio
-import platform
-import subprocess
-from bilibili_api import video, Credential
+from bilibili_api import Credential, video
 from bilibili_api.video import VideoDownloadURLDataDetecter
+
 from astrbot import logger
-import shutil
+
 
 class VideoAPI():
     """

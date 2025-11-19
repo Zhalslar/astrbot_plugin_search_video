@@ -1,21 +1,20 @@
 import asyncio
-import aiohttp
-import aiofiles
-from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont
-from io import BytesIO
-from bs4 import BeautifulSoup
 import hashlib
+from io import BytesIO
+from pathlib import Path
+
+import aiofiles
+import aiohttp
+from bs4 import BeautifulSoup
+from PIL import Image, ImageDraw, ImageFont
+
 from astrbot import logger
 
-font_path = (
-    Path(__file__).resolve().parent / "hei.TTF"
-)
 
 class VideoCardRenderer:
     def __init__(
         self,
-        font_path: Path = font_path,
+        font_path: Path = Path(__file__).resolve().parent / "hei.TTF",
         cache_dir: Path = Path("image_cache"),
         card_width: int = 300,
         card_height: int = 250,
