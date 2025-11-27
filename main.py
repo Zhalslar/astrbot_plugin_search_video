@@ -54,7 +54,7 @@ class VideoPlugin(Star):
         )
         await event.send(event.chain_result([Image.fromBytes(image)]))
         await event.send(
-            event.plain_result(f"请在{self.timeout}秒内回复序号")
+            event.plain_result(f"请在{self.timeout}秒内回复序号进行下载")
         )
 
         umo = event.unified_msg_origin
@@ -89,7 +89,6 @@ class VideoPlugin(Star):
 
             # 验证输入序号
             elif not input.isdigit() or int(input) < 1 or int(input) > len(videos[-1]):
-                await event.send(event.plain_result("已退出视频搜索！"))
                 controller.stop()
                 return
 
