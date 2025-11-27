@@ -33,22 +33,35 @@ class VideoAPI():
         搜索视频
         """
         params = {"search_type": "video", "keyword": keyword, "page": page}
-        async with httpx.AsyncClient() as client:
+        # B 站偶发 412/超时，做重试
+        retries = 3
+        for attempt in range(1, retries + 1):
             try:
-                response = await client.get(
-                    self.BILIBILI_SEARCH_API, params=params, headers=self.BILIBILI_HEADER
-                )
+                async with httpx.AsyncClient(timeout=10) as client:
+                    response = await client.get(
+                        self.BILIBILI_SEARCH_API,
+                        params=params,
+                        headers=self.BILIBILI_HEADER,
+                    )
                 response.raise_for_status()
                 data = response.json()
 
-                if data["code"] == 0:
+                if data.get("code") == 0:
                     video_list = data["data"].get("result", [])
                     logger.debug(video_list)
                     return video_list
 
+                logger.warning(
+                    f"搜索接口返回异常 code={data.get('code')} msg={data.get('message')}"
+                )
             except Exception as e:
-                logger.error(f"发生错误: {e}")
-                return []
+                logger.warning(f"第 {attempt}/{retries} 次搜索失败: {e}")
+
+            if attempt < retries:
+                await asyncio.sleep(1 * attempt)
+
+        logger.error("多次尝试后仍未获取到搜索结果")
+        return []
 
     async def download_video(self, video_id: str, temp_dir: str) -> str | None:
         """下载视频"""

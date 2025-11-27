@@ -41,12 +41,15 @@ class VideoPlugin(Star):
         """搜索视频"""
 
         # 获取用户输入的视频名称
-        video_name = event.message_str.replace("搜视频", "")
+        video_name = event.message_str.replace("搜视频", "", 1).strip()
+        if not video_name:
+            yield event.plain_result("请提供要搜索的视频关键词")
+            return
 
         # 获取搜索结果
         video_list = await self.api.search_video(keyword=video_name, page=1)
         if not video_list:
-            yield event.plain_result("没有找到相关视频")
+            yield event.plain_result("没有找到相关视频，可能被风控或网络异常，请稍后重试")
             return
         videos: list[list] = [video_list]
         # 展示搜索结果
