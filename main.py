@@ -1,5 +1,7 @@
 import os
 
+import copy
+
 from bs4 import BeautifulSoup
 
 from astrbot import logger
@@ -54,7 +56,9 @@ class VideoPlugin(Star):
         )
         await event.send(event.chain_result([Image.fromBytes(image)]))
         await event.send(
-            event.plain_result(f"请在{self.timeout}秒内回复序号进行下载")
+            event.plain_result(
+                f"请在{self.timeout}秒内回复序号进行下载，回复'n页'以跳转到第n页"
+            )
         )
 
         umo = event.unified_msg_origin
@@ -70,11 +74,16 @@ class VideoPlugin(Star):
             input = event.message_str
 
             # 翻页机制
-            if input.startswith("页") and input[-1].isdigit():
+            if (
+                input.startswith("页") and input[1:].isdigit()
+            ) or (input.endswith("页") and input[:-1].isdigit()):
                 # 重置超时时间
                 controller.keep(timeout=self.timeout, reset_timeout=True)
+                page_num = (
+                    int(input[1:]) if input.startswith("页") else int(input[:-1])
+                )
                 video_list_new = await self.api.search_video(
-                    keyword=video_name, page=int(input[-1])
+                    keyword=video_name, page=page_num
                 )
                 if not video_list_new:
                     await event.send(event.plain_result("没有找到更多相关视频"))
@@ -89,6 +98,11 @@ class VideoPlugin(Star):
 
             # 验证输入序号
             elif not input.isdigit() or int(input) < 1 or int(input) > len(videos[-1]):
+                # 非序号输入，转交给默认 LLM 处理
+                new_event = copy.copy(event)
+                new_event.clear_result()
+                self.context.get_event_queue().put_nowait(new_event)
+                event.stop_event()
                 controller.stop()
                 return
 
