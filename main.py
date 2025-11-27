@@ -71,17 +71,17 @@ class VideoPlugin(Star):
         ):
             if umo != event.unified_msg_origin or sender_id != event.get_sender_id():
                 return
-            input = event.message_str
+            raw_input = event.message_str
+            normalized_input = self.normalize_input(raw_input)
 
             # 翻页机制
-            if (
-                input.startswith("页") and input[1:].isdigit()
-            ) or (input.endswith("页") and input[:-1].isdigit()):
+            page_num = self.extract_page_number(normalized_input)
+            if page_num is not None:
+                if page_num < 1:
+                    await event.send(event.plain_result("请输入大于等于1的页码"))
+                    return
                 # 重置超时时间
                 controller.keep(timeout=self.timeout, reset_timeout=True)
-                page_num = (
-                    int(input[1:]) if input.startswith("页") else int(input[:-1])
-                )
                 video_list_new = await self.api.search_video(
                     keyword=video_name, page=page_num
                 )
@@ -97,7 +97,11 @@ class VideoPlugin(Star):
                 return
 
             # 验证输入序号
-            elif not input.isdigit() or int(input) < 1 or int(input) > len(videos[-1]):
+            elif (
+                not normalized_input.isdigit()
+                or int(normalized_input) < 1
+                or int(normalized_input) > len(videos[-1])
+            ):
                 # 非序号输入，转交给默认 LLM 处理
                 new_event = copy.copy(event)
                 new_event.clear_result()
@@ -109,7 +113,7 @@ class VideoPlugin(Star):
             # 先停止会话，防止下载视频时出现“再次输入”
             controller.stop()
             # 获取视频信息
-            video = videos[-1][int(input) - 1]
+            video = videos[-1][int(normalized_input) - 1]
             video_id: str = video.get("bvid", "")
             raw_title = video["title"]
             title = BeautifulSoup(raw_title, "html.parser").get_text()
@@ -193,3 +197,35 @@ class VideoPlugin(Star):
             elif i == 2:
                 seconds += int(part) * 3600
         return seconds
+
+    @staticmethod
+    def normalize_input(text: str) -> str:
+        """去除空格并将全角数字转为半角，方便后续校验"""
+        full_width_map = {
+            ord("０"): "0",
+            ord("１"): "1",
+            ord("２"): "2",
+            ord("３"): "3",
+            ord("４"): "4",
+            ord("５"): "5",
+            ord("６"): "6",
+            ord("７"): "7",
+            ord("８"): "8",
+            ord("９"): "9",
+            ord("　"): " ",
+            ord("\u3000"): " ",
+        }
+        return text.translate(full_width_map).strip()
+
+    @staticmethod
+    def extract_page_number(text: str) -> int | None:
+        """解析 n页 / 页n，确保页码为纯数字"""
+        candidate = None
+        if text.startswith("页"):
+            candidate = text[1:]
+        elif text.endswith("页"):
+            candidate = text[:-1]
+
+        if candidate is None or not candidate.isdigit():
+            return None
+        return int(candidate)

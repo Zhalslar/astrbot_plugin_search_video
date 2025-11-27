@@ -56,7 +56,7 @@ class VideoCardRenderer:
             return Image.open(cache_path).convert("RGB")
 
         async with self.semaphore:
-            async with session.get(url, headers=self.request_headers) as resp:
+            async with session.get(url) as resp:
                 if resp.status == 200:
                     img_bytes = await resp.read()
                     async with aiofiles.open(cache_path, "wb") as f:
