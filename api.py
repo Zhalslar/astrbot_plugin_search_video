@@ -6,7 +6,7 @@ import subprocess
 import sys
 
 import aiofiles
-import httpx
+import aiohttp
 from bilibili_api import Credential, video
 from bilibili_api.video import VideoDownloadURLDataDetecter
 
@@ -33,22 +33,36 @@ class VideoAPI():
         搜索视频
         """
         params = {"search_type": "video", "keyword": keyword, "page": page}
-        async with httpx.AsyncClient() as client:
+        # B 站偶发 412/超时，做重试
+        retries = 3
+        timeout = aiohttp.ClientTimeout(total=10)
+        for attempt in range(1, retries + 1):
             try:
-                response = await client.get(
-                    self.BILIBILI_SEARCH_API, params=params, headers=self.BILIBILI_HEADER
-                )
-                response.raise_for_status()
-                data = response.json()
+                async with aiohttp.ClientSession(timeout=timeout) as session:
+                    async with session.get(
+                        self.BILIBILI_SEARCH_API,
+                        params=params,
+                        headers=self.BILIBILI_HEADER,
+                    ) as response:
+                        response.raise_for_status()
+                        data = await response.json()
 
-                if data["code"] == 0:
+                if data.get("code") == 0:
                     video_list = data["data"].get("result", [])
                     logger.debug(video_list)
                     return video_list
 
+                logger.warning(
+                    f"搜索接口返回异常 code={data.get('code')} msg={data.get('message')}"
+                )
             except Exception as e:
-                logger.error(f"发生错误: {e}")
-                return []
+                logger.warning(f"第 {attempt}/{retries} 次搜索失败: {e}")
+
+            if attempt < retries:
+                await asyncio.sleep(1 * attempt)
+
+        logger.error("多次尝试后仍未获取到搜索结果")
+        return []
 
     async def download_video(self, video_id: str, temp_dir: str) -> str | None:
         """下载视频"""
@@ -94,21 +108,23 @@ class VideoAPI():
     async def _download_b_file(
         self, url: str, full_file_name: str
     ):
-        async with httpx.AsyncClient() as client:
-            async with client.stream("GET", url, headers=self.BILIBILI_HEADER) as resp:
+        async with aiohttp.ClientSession(headers=self.BILIBILI_HEADER) as session:
+            async with session.get(url) as resp:
+                resp.raise_for_status()
                 current_len = 0
                 total_len = int(resp.headers.get("content-length", 0))
                 last_percent = -1
 
                 async with aiofiles.open(full_file_name, "wb") as f:
-                    async for chunk in resp.aiter_bytes():
+                    async for chunk in resp.content.iter_chunked(1024 * 64):
                         current_len += len(chunk)
                         await f.write(chunk)
 
-                        percent = int(current_len / total_len * 100)
-                        if percent != last_percent:
-                            last_percent = percent
-                            self._print_progress_bar(percent, full_file_name)
+                        if total_len:
+                            percent = int(current_len / total_len * 100)
+                            if percent != last_percent:
+                                last_percent = percent
+                                self._print_progress_bar(percent, full_file_name)
                 # 下载完成后换行
                 sys.stdout.write("\n")
                 sys.stdout.flush()
