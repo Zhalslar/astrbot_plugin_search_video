@@ -6,7 +6,7 @@ import subprocess
 import sys
 
 import aiofiles
-import httpx
+import aiohttp
 from bilibili_api import Credential, video
 from bilibili_api.video import VideoDownloadURLDataDetecter
 
@@ -35,16 +35,17 @@ class VideoAPI():
         params = {"search_type": "video", "keyword": keyword, "page": page}
         # B 站偶发 412/超时，做重试
         retries = 3
+        timeout = aiohttp.ClientTimeout(total=10)
         for attempt in range(1, retries + 1):
             try:
-                async with httpx.AsyncClient(timeout=10) as client:
-                    response = await client.get(
+                async with aiohttp.ClientSession(timeout=timeout) as session:
+                    async with session.get(
                         self.BILIBILI_SEARCH_API,
                         params=params,
                         headers=self.BILIBILI_HEADER,
-                    )
-                response.raise_for_status()
-                data = response.json()
+                    ) as response:
+                        response.raise_for_status()
+                        data = await response.json()
 
                 if data.get("code") == 0:
                     video_list = data["data"].get("result", [])
@@ -107,21 +108,23 @@ class VideoAPI():
     async def _download_b_file(
         self, url: str, full_file_name: str
     ):
-        async with httpx.AsyncClient() as client:
-            async with client.stream("GET", url, headers=self.BILIBILI_HEADER) as resp:
+        async with aiohttp.ClientSession(headers=self.BILIBILI_HEADER) as session:
+            async with session.get(url) as resp:
+                resp.raise_for_status()
                 current_len = 0
                 total_len = int(resp.headers.get("content-length", 0))
                 last_percent = -1
 
                 async with aiofiles.open(full_file_name, "wb") as f:
-                    async for chunk in resp.aiter_bytes():
+                    async for chunk in resp.content.iter_chunked(1024 * 64):
                         current_len += len(chunk)
                         await f.write(chunk)
 
-                        percent = int(current_len / total_len * 100)
-                        if percent != last_percent:
-                            last_percent = percent
-                            self._print_progress_bar(percent, full_file_name)
+                        if total_len:
+                            percent = int(current_len / total_len * 100)
+                            if percent != last_percent:
+                                last_percent = percent
+                                self._print_progress_bar(percent, full_file_name)
                 # 下载完成后换行
                 sys.stdout.write("\n")
                 sys.stdout.flush()

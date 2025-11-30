@@ -21,6 +21,12 @@
         "default": true,
         "hint": "开启后在下载前发送“正在下载”提示"
     },
+    "show_guidance_prompt": {
+        "description": "是否提示操作说明",
+        "type": "bool",
+        "default": true,
+        "hint": "关闭后不再发送“请在xx秒内回复序号/页码”提示，适合熟练用户"
+    },
     "cards_per_row": {
         "description": "候选菜单的列数",
         "type": "int",

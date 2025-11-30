@@ -33,6 +33,8 @@ class VideoPlugin(Star):
         self.timeout: int = config.get("timeout", 60)
         # 是否保存视频
         self.is_save: bool = config.get("is_save", True)
+        # 是否提示操作说明
+        self.show_guidance_prompt: bool = config.get("show_guidance_prompt", True)
         # 是否提示“正在下载”
         self.show_download_prompt: bool = config.get("show_download_prompt", True)
         # 视频缓存路径
@@ -60,11 +62,12 @@ class VideoPlugin(Star):
             cards_per_row=self.cards_per_row,
         )
         await event.send(event.chain_result([Image.fromBytes(image)]))
-        await event.send(
-            event.plain_result(
-                f"请在{self.timeout}秒内回复序号进行下载，回复'n页'以跳转到第n页"
+        if self.show_guidance_prompt:
+            await event.send(
+                event.plain_result(
+                    f"请在{self.timeout}秒内回复序号进行下载，回复'n页'以跳转到第n页"
+                )
             )
-        )
 
         umo = event.unified_msg_origin
         sender_id = event.get_sender_id()
