@@ -32,6 +32,16 @@ class VideoCardRenderer:
         self.corner_radius = corner_radius
         self.semaphore = asyncio.Semaphore(max_concurrency)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
+        # B 站静态资源偶尔会校验 UA/Referer，不带头信息会返回 403/412
+        self.request_headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/100.0.4896.127 Safari/537.36"
+            ),
+            "Referer": "https://www.bilibili.com",
+            "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+        }
 
     def _get_cache_path(self, url: str) -> Path:
         # 生成唯一文件名
@@ -52,7 +62,9 @@ class VideoCardRenderer:
                     async with aiofiles.open(cache_path, "wb") as f:
                         await f.write(img_bytes)
                     return Image.open(BytesIO(img_bytes)).convert("RGB")
-                raise ValueError(f"下载失败: {url}")
+
+                # 记录状态码，方便定位偶发的防盗链/限流问题
+                raise ValueError(f"下载失败({resp.status}): {url}")
 
     def format_count(self, count: int) -> str:
         if count >= 10000:
@@ -166,7 +178,7 @@ class VideoCardRenderer:
     ) -> bytes:
         font = ImageFont.truetype(self.font_path, 16)
 
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(headers=self.request_headers) as session:
             tasks = [
                 self.draw_card(video, font, session, index=i + 1)
                 for i, video in enumerate(video_list)
