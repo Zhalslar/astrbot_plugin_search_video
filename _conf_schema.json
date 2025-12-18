@@ -1,8 +1,13 @@
 {
     "max_duration": {
         "description": "哔哩哔哩限制的最大视频时长（秒）",
-        "type": "int",
         "hint": "单位为秒，超过此时长的视频只发链接不下载视频",
+        "type": "int",
+        "slider": {
+            "min": 0,
+            "max": 1800,
+            "step": 60
+        },
         "default": 600
     },
     "cookie": {
@@ -17,26 +22,36 @@
     },
     "show_download_prompt": {
         "description": "是否提示正在下载",
+        "hint": "开启后在下载前发送“正在下载”提示",
         "type": "bool",
-        "default": true,
-        "hint": "开启后在下载前发送“正在下载”提示"
+        "default": true
     },
     "show_guidance_prompt": {
         "description": "是否提示操作说明",
+        "hint": "关闭后不再发送“请在xx秒内回复序号/页码”提示，适合熟练用户",
         "type": "bool",
-        "default": true,
-        "hint": "关闭后不再发送“请在xx秒内回复序号/页码”提示，适合熟练用户"
+        "default": false
     },
     "cards_per_row": {
         "description": "候选菜单的列数",
         "type": "int",
         "hint": "每页候选菜单共20个视频， 此配置可设定以多少列显示",
+        "slider": {
+            "min": 2,
+            "max": 5,
+            "step": 1
+        },
         "default": 3
     },
     "timeout": {
         "description": "超时时间（秒）",
         "type": "int",
         "hint": "等待用户选视频的超时时间，超时自动退出",
+        "slider": {
+            "min": 30,
+            "max": 300,
+            "step": 10
+        },
         "default": 60
     }
 }

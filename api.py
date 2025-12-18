@@ -10,10 +10,10 @@ import aiohttp
 from bilibili_api import Credential, video
 from bilibili_api.video import VideoDownloadURLDataDetecter
 
-from astrbot import logger
+from astrbot.api import logger
 
 
-class VideoAPI():
+class VideoAPI:
     """
     视频API类
     """

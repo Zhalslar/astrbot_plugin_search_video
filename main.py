@@ -1,12 +1,11 @@
-import os
-
 import copy
+import os
 
 from bs4 import BeautifulSoup
 
 from astrbot import logger
 from astrbot.api.event import AstrMessageEvent, filter
-from astrbot.api.star import Context, Star, StarTools, register
+from astrbot.api.star import Context, Star, StarTools
 from astrbot.core.config.astrbot_config import AstrBotConfig
 from astrbot.core.message.components import Image, Video
 from astrbot.core.utils.session_waiter import SessionController, session_waiter
@@ -15,8 +14,7 @@ from .api import VideoAPI
 from .draw import VideoCardRenderer
 
 
-@register("astrbot_plugin_search_video", "Zhalslar", "...", "...")
-class VideoPlugin(Star):
+class VideoSearchPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
         # 哔哩哔哩限制的最大视频时长（默认8分钟），单位：秒
@@ -45,7 +43,7 @@ class VideoPlugin(Star):
         """搜索视频"""
 
         # 获取用户输入的视频名称
-        video_name = event.message_str.replace("搜视频", "", 1).strip()
+        video_name = event.message_str.partition(" ")[2]
         if not video_name:
             yield event.plain_result("请提供要搜索的视频关键词")
             return
