@@ -20,17 +20,17 @@
         "type": "bool",
         "hint": "保存路径为data/plugins_data/astrbot_plugin_search_video"
     },
-    "show_download_prompt": {
-        "description": "是否提示正在下载",
-        "hint": "开启后在下载前发送“正在下载”提示",
-        "type": "bool",
-        "default": true
-    },
     "show_guidance_prompt": {
         "description": "是否提示操作说明",
         "hint": "关闭后不再发送“请在xx秒内回复序号/页码”提示，适合熟练用户",
         "type": "bool",
         "default": false
+    },
+    "show_download_prompt": {
+        "description": "是否提示正在下载",
+        "hint": "开启后在下载前发送“正在下载”提示",
+        "type": "bool",
+        "default": true
     },
     "cards_per_row": {
         "description": "候选菜单的列数",
