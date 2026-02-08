@@ -53,5 +53,16 @@
             "step": 10
         },
         "default": 60
+    },
+    "retry_times": {
+        "description": "下载失败重试次数",
+        "type": "int",
+        "hint": "下载失败时，重试次数",
+        "slider": {
+            "min": 0,
+            "max": 5,
+            "step": 1
+        },
+        "default": 3
     }
 }
