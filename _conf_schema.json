@@ -1,36 +1,8 @@
 {
-    "max_duration": {
-        "description": "哔哩哔哩限制的最大视频时长（秒）",
-        "hint": "单位为秒，超过此时长的视频只发链接不下载视频",
-        "type": "int",
-        "slider": {
-            "min": 0,
-            "max": 1800,
-            "step": 60
-        },
-        "default": 600
-    },
     "cookie": {
         "description": "B站cookie",
         "type": "text",
         "hint": "可以填也可以不填，理论上不影响，如果下载视频经常失败，可以填一下。"
-    },
-    "is_save": {
-        "description": "是否保存视频",
-        "type": "bool",
-        "hint": "保存路径为data/plugins_data/astrbot_plugin_search_video"
-    },
-    "show_guidance_prompt": {
-        "description": "是否提示操作说明",
-        "hint": "关闭后不再发送“请在xx秒内回复序号/页码”提示，适合熟练用户",
-        "type": "bool",
-        "default": false
-    },
-    "show_download_prompt": {
-        "description": "是否提示正在下载",
-        "hint": "开启后在下载前发送“正在下载”提示",
-        "type": "bool",
-        "default": true
     },
     "cards_per_row": {
         "description": "候选菜单的列数",
@@ -43,8 +15,14 @@
         },
         "default": 3
     },
-    "timeout": {
-        "description": "超时时间（秒）",
+    "show_guidance_prompt": {
+        "description": "是否提示操作说明",
+        "hint": "关闭后不再发送“请在xx秒内回复序号/页码”提示，适合熟练用户",
+        "type": "bool",
+        "default": false
+    },
+    "select_timeout": {
+        "description": "选择超时时间（秒）",
         "type": "int",
         "hint": "等待用户选视频的超时时间，超时自动退出",
         "slider": {
@@ -53,6 +31,34 @@
             "step": 10
         },
         "default": 60
+    },
+    "show_download_prompt": {
+        "description": "是否提示正在下载",
+        "hint": "开启后在下载前发送“正在下载”提示",
+        "type": "bool",
+        "default": true
+    },
+    "max_duration": {
+        "description": "允许的最大视频时长（秒）",
+        "hint": "单位为秒，超过此时长的视频只发链接不下载视频",
+        "type": "int",
+        "slider": {
+            "min": 0,
+            "max": 1800,
+            "step": 60
+        },
+        "default": 600
+    },
+    "download_timeout": {
+        "description": "下载超时时间（秒）",
+        "type": "int",
+        "hint": "下载视频的超时时间，超时则终止下载。 下载视频较为耗时，建议设大一些",
+        "slider": {
+            "min": 60,
+            "max": 600,
+            "step": 10
+        },
+        "default": 600
     },
     "retry_times": {
         "description": "下载失败重试次数",
@@ -64,5 +70,10 @@
             "step": 1
         },
         "default": 3
+    },
+    "is_save": {
+        "description": "是否保存视频",
+        "type": "bool",
+        "hint": "保存路径为data/plugins_data/astrbot_plugin_search_video"
     }
 }

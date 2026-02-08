@@ -25,6 +25,13 @@ class VideoSearchPlugin(Star):
         self.image_downloader = ImageDownloader(self.cfg)
         self.renderer = VideoCardRenderer(self.cfg, self.image_downloader)
 
+    async def initialize(self):
+        pass
+
+    async def terminate(self):
+        await self.image_downloader.close()
+        await self.api.close()
+
     async def _send_video_list_image(
         self, event: AstrMessageEvent, video_list: list[dict]
     ):
@@ -72,7 +79,7 @@ class VideoSearchPlugin(Star):
         keyword: str,
         videos: list[list[dict]],
     ):
-        timeout = self.cfg.timeout
+        timeout = self.cfg.select_timeout
         umo = event.unified_msg_origin
         sender_id = event.get_sender_id()
 

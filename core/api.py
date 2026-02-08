@@ -33,25 +33,30 @@ class VideoAPI:
             "Accept": "application/json, text/plain, */*",
             "Cookie": self.cfg.cookie,
         }
+        self.session = aiohttp.ClientSession(
+            headers=self.BILIBILI_HEADER,
+            timeout=aiohttp.ClientTimeout(total=self.cfg.download_timeout)
+        )
+
+    async def close(self):
+        await self.session.close()
 
     async def search_video(self, keyword: str, page: int = 1) -> list[dict] | None:
         """
         搜索视频
         """
         params = {"search_type": "video", "keyword": keyword, "page": page}
-        # B 站偶发 412/超时，做重试
+
         retries = self.cfg.retry_times
-        timeout = aiohttp.ClientTimeout(total=10)
         for attempt in range(1, retries + 1):
             try:
-                async with aiohttp.ClientSession(timeout=timeout) as session:
-                    async with session.get(
-                        self.BILIBILI_SEARCH_API,
-                        params=params,
-                        headers=self.BILIBILI_HEADER,
-                    ) as response:
-                        response.raise_for_status()
-                        data = await response.json()
+                async with self.session.get(
+                    self.BILIBILI_SEARCH_API,
+                    params=params,
+                    headers=self.BILIBILI_HEADER,
+                ) as response:
+                    response.raise_for_status()
+                    data = await response.json()
 
                 if data.get("code") == 0:
                     video_list = data["data"].get("result", [])
@@ -109,26 +114,25 @@ class VideoAPI:
         return output_file
 
     async def _download_b_file(self, url: str, save_path: Path):
-        async with aiohttp.ClientSession(headers=self.BILIBILI_HEADER) as session:
-            async with session.get(url) as resp:
-                resp.raise_for_status()
-                current_len = 0
-                total_len = int(resp.headers.get("content-length", 0))
-                last_percent = -1
+        async with self.session.get(url) as resp:
+            resp.raise_for_status()
+            current_len = 0
+            total_len = int(resp.headers.get("content-length", 0))
+            last_percent = -1
 
-                async with aiofiles.open(save_path, "wb") as f:
-                    async for chunk in resp.content.iter_chunked(1024 * 64):
-                        current_len += len(chunk)
-                        await f.write(chunk)
+            async with aiofiles.open(save_path, "wb") as f:
+                async for chunk in resp.content.iter_chunked(1024 * 64):
+                    current_len += len(chunk)
+                    await f.write(chunk)
 
-                        if total_len:
-                            percent = int(current_len / total_len * 100)
-                            if percent != last_percent:
-                                last_percent = percent
-                                self._print_progress_bar(percent, save_path)
-                # 下载完成后换行
-                sys.stdout.write("\n")
-                sys.stdout.flush()
+                    if total_len:
+                        percent = int(current_len / total_len * 100)
+                        if percent != last_percent:
+                            last_percent = percent
+                            self._print_progress_bar(percent, save_path)
+            # 下载完成后换行
+            sys.stdout.write("\n")
+            sys.stdout.flush()
 
     def _print_progress_bar(self, percent: int, path: Path):
         bar_length = 50

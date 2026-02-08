@@ -107,14 +107,15 @@ class ConfigNode:
 
 
 class PluginConfig(ConfigNode):
-    max_duration: int
     cookie: str
     cards_per_row: int
-    timeout: int
-    is_save: bool
+    select_timeout: int
+    download_timeout: int
+    max_duration: int
     show_guidance_prompt: bool
     show_download_prompt: bool
     retry_times: int
+    is_save: bool
 
     _plugin_name = "astrbot_plugin_search_video"
 
