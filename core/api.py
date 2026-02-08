@@ -1,5 +1,5 @@
 import asyncio
-import os
+from pathlib import Path
 import platform
 import shutil
 import subprocess
@@ -12,40 +12,51 @@ from bilibili_api.video import VideoDownloadURLDataDetecter
 
 from astrbot.api import logger
 
+from .config import PluginConfig
+
 
 class VideoAPI:
     """
     视频API类
     """
-    def __init__(self, cookie: str):
-        self.BILIBILI_SEARCH_API = "https://api.bilibili.com/x/web-interface/search/type"
+
+    def __init__(self, config: PluginConfig):
+        self.cfg = config
+        self.BILIBILI_SEARCH_API = (
+            "https://api.bilibili.com/x/web-interface/search/type"
+        )
 
         self.BILIBILI_HEADER = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36",
             "Referer": "https://www.bilibili.com",
             "Origin": "https://www.bilibili.com",
             "Accept": "application/json, text/plain, */*",
-            "Cookie": cookie,
+            "Cookie": self.cfg.cookie,
         }
+        self.session = aiohttp.ClientSession(
+            headers=self.BILIBILI_HEADER,
+            timeout=aiohttp.ClientTimeout(total=self.cfg.download_timeout)
+        )
 
-    async def search_video(self, keyword: str,  page: int = 1) -> list[dict] | None:
+    async def close(self):
+        await self.session.close()
+
+    async def search_video(self, keyword: str, page: int = 1) -> list[dict] | None:
         """
         搜索视频
         """
         params = {"search_type": "video", "keyword": keyword, "page": page}
-        # B 站偶发 412/超时，做重试
-        retries = 3
-        timeout = aiohttp.ClientTimeout(total=10)
+
+        retries = self.cfg.retry_times
         for attempt in range(1, retries + 1):
             try:
-                async with aiohttp.ClientSession(timeout=timeout) as session:
-                    async with session.get(
-                        self.BILIBILI_SEARCH_API,
-                        params=params,
-                        headers=self.BILIBILI_HEADER,
-                    ) as response:
-                        response.raise_for_status()
-                        data = await response.json()
+                async with self.session.get(
+                    self.BILIBILI_SEARCH_API,
+                    params=params,
+                    headers=self.BILIBILI_HEADER,
+                ) as response:
+                    response.raise_for_status()
+                    data = await response.json()
 
                 if data.get("code") == 0:
                     video_list = data["data"].get("result", [])
@@ -64,12 +75,8 @@ class VideoAPI:
         logger.error("多次尝试后仍未获取到搜索结果")
         return []
 
-    async def download_video(self, video_id: str, temp_dir: str) -> str | None:
+    async def download_video(self, video_id: str) -> Path | None:
         """下载视频"""
-        # 确保临时目录存在
-        os.makedirs(temp_dir, exist_ok=True)
-
-        # 获取视频流和音频流下载链接
         v = video.Video(video_id, credential=Credential(sessdata=""))
         download_url_data = await v.get_download_url(page_index=0)
         detector = VideoDownloadURLDataDetecter(download_url_data)
@@ -77,9 +84,10 @@ class VideoAPI:
         video_url, audio_url = streams[0].url, streams[1].url
 
         # 构建文件路径
-        video_file = os.path.join(temp_dir, f"{video_id}-video.m4s")
-        audio_file = os.path.join(temp_dir, f"{video_id}-audio.m4s")
-        output_file = os.path.join(temp_dir, f"{video_id}-res.mp4")
+        videos_dir = self.cfg.videos_dir
+        video_file = videos_dir / f"{video_id}-video.m4s"
+        audio_file = videos_dir / f"{video_id}-audio.m4s"
+        output_file = videos_dir / f"{video_id}-res.mp4"
 
         # 下载视频和音频
         try:
@@ -96,73 +104,68 @@ class VideoAPI:
 
         # 删除临时文件
         for f in [video_file, audio_file]:
-            if os.path.exists(f):
-                os.remove(f)
+            if f.exists():
+                f.unlink()
 
-        if not os.path.exists(output_file):
+        if not output_file.exists():
             logger.error(f"输出文件不存在：{output_file}")
             return None
 
         return output_file
 
-    async def _download_b_file(
-        self, url: str, full_file_name: str
-    ):
-        async with aiohttp.ClientSession(headers=self.BILIBILI_HEADER) as session:
-            async with session.get(url) as resp:
-                resp.raise_for_status()
-                current_len = 0
-                total_len = int(resp.headers.get("content-length", 0))
-                last_percent = -1
+    async def _download_b_file(self, url: str, save_path: Path):
+        async with self.session.get(url) as resp:
+            resp.raise_for_status()
+            current_len = 0
+            total_len = int(resp.headers.get("content-length", 0))
+            last_percent = -1
 
-                async with aiofiles.open(full_file_name, "wb") as f:
-                    async for chunk in resp.content.iter_chunked(1024 * 64):
-                        current_len += len(chunk)
-                        await f.write(chunk)
+            async with aiofiles.open(save_path, "wb") as f:
+                async for chunk in resp.content.iter_chunked(1024 * 64):
+                    current_len += len(chunk)
+                    await f.write(chunk)
 
-                        if total_len:
-                            percent = int(current_len / total_len * 100)
-                            if percent != last_percent:
-                                last_percent = percent
-                                self._print_progress_bar(percent, full_file_name)
-                # 下载完成后换行
-                sys.stdout.write("\n")
-                sys.stdout.flush()
+                    if total_len:
+                        percent = int(current_len / total_len * 100)
+                        if percent != last_percent:
+                            last_percent = percent
+                            self._print_progress_bar(percent, save_path)
+            # 下载完成后换行
+            sys.stdout.write("\n")
+            sys.stdout.flush()
 
-
-    def _print_progress_bar(self, percent: int, label: str = ""):
+    def _print_progress_bar(self, percent: int, path: Path):
         bar_length = 50
         filled_length = int(bar_length * percent // 100)
         bar = "█" * filled_length + "-" * (bar_length - filled_length)
 
         # 提取文件名并限制长度，避免刷屏
-        file_name = os.path.basename(label)
+        file_name = path.name
         if len(file_name) > 30:
             file_name = "..." + file_name[-27:]
 
         sys.stdout.write(f"\r{file_name:<30} [{bar}] {percent:3d}%")
         sys.stdout.flush()
 
-
     async def _merge_file_to_mp4(
         self,
-        v_full_file_name: str,
-        a_full_file_name: str,
-        output_file_name: str,
+        video_file: Path,
+        audio_file: Path,
+        output_file: Path,
         log_output: bool = False,
     ) -> None:
         """
         合并视频文件和音频文件
-        :param v_full_file_name: 视频文件路径
-        :param a_full_file_name: 音频文件路径
-        :param output_file_name: 输出文件路径
+        :param video_file: 视频文件路径
+        :param audio_file: 音频文件路径
+        :param output_file: 输出文件路径
         :param log_output: 是否显示 ffmpeg 输出日志，默认忽略
         :return:
         """
-        logger.info(f"正在合并：{output_file_name}")
+        logger.info(f"正在合并：{output_file}")
 
         # 构建 ffmpeg 命令
-        command = f'ffmpeg -y -i "{v_full_file_name}" -i "{a_full_file_name}" -c copy "{output_file_name}"'
+        command = f'ffmpeg -y -i "{str(video_file)}" -i "{str(audio_file)}" -c copy "{str(output_file)}"'
         stdout = None if log_output else subprocess.DEVNULL
         stderr = None if log_output else subprocess.PIPE
 
@@ -171,7 +174,9 @@ class VideoAPI:
             loop = asyncio.get_event_loop()
             process = await loop.run_in_executor(
                 None,
-                lambda: subprocess.run(command, shell=True, stdout=stdout, stderr=stderr),  # noqa: ASYNC221
+                lambda: subprocess.run(
+                    command, shell=True, stdout=stdout, stderr=stderr
+                ),  # noqa: ASYNC221
             )
             stderr_output = process.stderr.decode().strip() if process.stderr else ""
         else:
@@ -187,7 +192,7 @@ class VideoAPI:
             if stderr_output:
                 logger.error(f"FFmpeg 错误输出：{stderr_output}")
             # 回退为仅发送视频文件
-            shutil.copy(v_full_file_name, output_file_name)
-            logger.warning(f"合并视频音频失败，回退为仅视频：{output_file_name}")
+            shutil.copy(video_file, output_file)
+            logger.warning(f"合并视频音频失败，回退为仅视频：{output_file}")
         else:
-            logger.info(f"合并完成：{output_file_name}")
+            logger.info(f"合并完成：{output_file}")

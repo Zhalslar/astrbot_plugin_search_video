@@ -32,7 +32,6 @@ sudo apt install ffmpeg
 
 - 安装本插件：直接在astrbot的插件市场搜索astrbot_plugin_search_video，点击安装，等待完成即可
 
-
 ## ⚙️ 配置
 
 ### 插件配置
@@ -54,7 +53,7 @@ sudo apt install ffmpeg
 
 |     命令      |      说明       |
 |:-------------:|:-----------------------------:|
-| /搜视频 关键词     | 根据关键词搜索视频，然后发送序号“1” “2”等进行选择，发“页2” “页3”等进行翻页  |
+| 搜视频 <关键词>     | 根据关键词搜索视频，然后发送序号“1” “2”等进行选择，发“页2” “页3”等进行翻页  |
 
 示例图
 ![download](https://github.com/user-attachments/assets/8d2fe20d-bf74-4411-b96c-0ab8da2a5910)
