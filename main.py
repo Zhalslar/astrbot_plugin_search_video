@@ -20,7 +20,7 @@ from .core.downloader import ImageDownloader
 class VideoSearchPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
-        self.cfg = PluginConfig(config)
+        self.cfg = PluginConfig(config, context)
         self.api = VideoAPI(self.cfg)
         self.image_downloader = ImageDownloader(self.cfg)
         self.renderer = VideoCardRenderer(self.cfg, self.image_downloader)
@@ -56,7 +56,7 @@ class VideoSearchPlugin(Star):
         if self.cfg.show_guidance_prompt:
             await event.send(
                 event.plain_result(
-                    f"请在{self.cfg.timeout}秒内回复序号进行下载，回复'n页'以跳转"
+                    f"请在{self.cfg.select_timeout}秒内回复序号进行下载，回复'n页'以跳转"
                 )
             )
 
@@ -79,11 +79,10 @@ class VideoSearchPlugin(Star):
         keyword: str,
         videos: list[list[dict]],
     ):
-        timeout = self.cfg.select_timeout
         umo = event.unified_msg_origin
         sender_id = event.get_sender_id()
 
-        @session_waiter(timeout=timeout)  # type: ignore
+        @session_waiter(timeout=self.cfg.select_timeout)  # type: ignore
         async def waiter(controller: SessionController, event: AstrMessageEvent):
             if not self._is_same_session(umo, sender_id, event):
                 return
@@ -122,7 +121,7 @@ class VideoSearchPlugin(Star):
             await event.send(event.plain_result("请输入大于等于 1 的页码"))
             return True
 
-        controller.keep(timeout=self.cfg.timeout, reset_timeout=True)
+        controller.keep(timeout=self.cfg.select_timeout, reset_timeout=True)
 
         new_videos = await self.api.search_video(keyword=keyword, page=page)
         if not new_videos:

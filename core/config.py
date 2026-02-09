@@ -8,6 +8,7 @@ from typing import Any, Union, get_args, get_origin, get_type_hints
 
 from astrbot.api import logger
 from astrbot.core.config.astrbot_config import AstrBotConfig
+from astrbot.core.star.context import Context
 from astrbot.core.star.star_tools import StarTools
 from astrbot.core.utils.astrbot_path import get_astrbot_plugin_path
 
@@ -119,7 +120,7 @@ class PluginConfig(ConfigNode):
 
     _plugin_name = "astrbot_plugin_search_video"
 
-    def __init__(self, cfg: AstrBotConfig):
+    def __init__(self, cfg: AstrBotConfig, context: Context):
         super().__init__(cfg)
 
         self.data_dir = StarTools.get_data_dir(self._plugin_name)

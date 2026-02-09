@@ -4,8 +4,9 @@ from io import BytesIO
 from pathlib import Path
 
 import aiofiles
-import aiohttp
+
 from PIL import Image
+from aiohttp import ClientSession, ClientTimeout
 
 from .config import PluginConfig
 
@@ -27,7 +28,7 @@ class ImageDownloader:
             "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
         }
         self.semaphore = asyncio.Semaphore(self.cfg.max_concurrency)
-        self.session = aiohttp.ClientSession()
+        self.session = ClientSession(timeout=ClientTimeout(total=self.cfg.download_timeout))
 
     async def close(self):
         await self.session.close()
