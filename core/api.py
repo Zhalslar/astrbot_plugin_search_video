@@ -6,7 +6,8 @@ import subprocess
 import sys
 
 import aiofiles
-import aiohttp
+
+from aiohttp import ClientSession, ClientTimeout
 from bilibili_api import Credential, video
 from bilibili_api.video import VideoDownloadURLDataDetecter
 
@@ -33,9 +34,9 @@ class VideoAPI:
             "Accept": "application/json, text/plain, */*",
             "Cookie": self.cfg.cookie,
         }
-        self.session = aiohttp.ClientSession(
+        self.session = ClientSession(
             headers=self.BILIBILI_HEADER,
-            timeout=aiohttp.ClientTimeout(total=self.cfg.download_timeout)
+            timeout=ClientTimeout(total=self.cfg.download_timeout),
         )
 
     async def close(self):
