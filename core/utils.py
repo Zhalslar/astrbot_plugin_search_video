@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import (
     AiocqhttpMessageEvent,
 )

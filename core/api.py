@@ -1,15 +1,18 @@
 import asyncio
-from pathlib import Path
-import platform
 import shutil
-import subprocess
 import sys
+from pathlib import Path
 
 import aiofiles
-
 from aiohttp import ClientSession, ClientTimeout
 from bilibili_api import Credential, video
-from bilibili_api.video import VideoDownloadURLDataDetecter
+from bilibili_api.video import (
+    AudioStreamDownloadURL,
+    VideoCodecs,
+    VideoDownloadURLDataDetecter,
+    VideoQuality,
+    VideoStreamDownloadURL,
+)
 
 from astrbot.api import logger
 
@@ -76,13 +79,51 @@ class VideoAPI:
         logger.error("多次尝试后仍未获取到搜索结果")
         return []
 
+    async def get_video_info(self, video_id: str) -> dict | None:
+        """获取单个视频的基础信息"""
+        try:
+            v = video.Video(video_id, credential=Credential(sessdata=""))
+            info = await v.get_info()
+        except Exception as e:
+            logger.error(f"获取视频详情失败: {video_id}, error: {e}")
+            return None
+
+        duration_seconds = int(info.get("duration") or 0)
+        return {
+            "bvid": str(info.get("bvid") or video_id),
+            "title": str(info.get("title") or ""),
+            "duration": self._format_duration(duration_seconds),
+        }
+
     async def download_video(self, video_id: str) -> Path | None:
         """下载视频"""
         v = video.Video(video_id, credential=Credential(sessdata=""))
         download_url_data = await v.get_download_url(page_index=0)
         detector = VideoDownloadURLDataDetecter(download_url_data)
-        streams = detector.detect_best_streams()
-        video_url, audio_url = streams[0].url, streams[1].url
+        streams = detector.detect_best_streams(
+            video_max_quality=VideoQuality._720P,
+            codecs=[VideoCodecs.AVC],
+            no_dolby_video=True,
+            no_hdr=True,
+        )
+
+        video_stream = streams[0]
+        if not isinstance(video_stream, VideoStreamDownloadURL):
+            logger.error(f"未找到可下载的视频流：{video_id}")
+            return None
+
+        logger.debug(
+            f"视频流质量: {video_stream.video_quality.name}, 编码: {video_stream.video_codecs}"
+        )
+
+        audio_stream = streams[1] if len(streams) > 1 else None
+        if not isinstance(audio_stream, AudioStreamDownloadURL):
+            logger.error(f"未找到可下载的音频流：{video_id}")
+            return None
+
+        logger.debug(f"音频流质量: {audio_stream.audio_quality.name}")
+
+        video_url, audio_url = video_stream.url, audio_stream.url
 
         # 构建文件路径
         videos_dir = self.cfg.videos_dir
@@ -165,28 +206,35 @@ class VideoAPI:
         """
         logger.info(f"正在合并：{output_file}")
 
-        # 构建 ffmpeg 命令
-        command = f'ffmpeg -y -i "{str(video_file)}" -i "{str(audio_file)}" -c copy "{str(output_file)}"'
-        stdout = None if log_output else subprocess.DEVNULL
-        stderr = None if log_output else subprocess.PIPE
+        stdout = None if log_output else asyncio.subprocess.DEVNULL
+        stderr = None if log_output else asyncio.subprocess.PIPE
 
-        if platform.system() == "Windows":
-            # Windows 下使用 run_in_executor
-            loop = asyncio.get_event_loop()
-            process = await loop.run_in_executor(
-                None,
-                lambda: subprocess.run(
-                    command, shell=True, stdout=stdout, stderr=stderr
-                ),  # noqa: ASYNC221
+        try:
+            process = await asyncio.create_subprocess_exec(
+                "ffmpeg",
+                "-y",
+                "-i",
+                str(video_file),
+                "-i",
+                str(audio_file),
+                "-c",
+                "copy",
+                "-map",
+                "0:v:0",
+                "-map",
+                "1:a:0",
+                str(output_file),
+                stdout=stdout,
+                stderr=stderr,
             )
-            stderr_output = process.stderr.decode().strip() if process.stderr else ""
-        else:
-            # 其他平台使用 create_subprocess_shell
-            process = await asyncio.create_subprocess_shell(
-                command, shell=True, stdout=stdout, stderr=stderr
-            )
-            _, stderr_output = await process.communicate()
-            stderr_output = stderr_output.decode().strip() if stderr_output else ""
+        except FileNotFoundError:
+            logger.error("合并失败：ffmpeg 未安装或无法找到可执行文件")
+            shutil.copy(video_file, output_file)
+            logger.warning(f"未找到 ffmpeg，回退为仅视频：{output_file}")
+            return
+
+        _, stderr_output = await process.communicate()
+        stderr_output = stderr_output.decode().strip() if stderr_output else ""
 
         if process.returncode != 0:
             logger.error(f"合并失败，FFmpeg 返回码：{process.returncode}")
@@ -197,3 +245,12 @@ class VideoAPI:
             logger.warning(f"合并视频音频失败，回退为仅视频：{output_file}")
         else:
             logger.info(f"合并完成：{output_file}")
+
+    @staticmethod
+    def _format_duration(seconds: int) -> str:
+        seconds = max(0, int(seconds or 0))
+        hours, remainder = divmod(seconds, 3600)
+        minutes, secs = divmod(remainder, 60)
+        if hours > 0:
+            return f"{hours}:{minutes:02d}:{secs:02d}"
+        return f"{minutes}:{secs:02d}"

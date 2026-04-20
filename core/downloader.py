@@ -4,9 +4,8 @@ from io import BytesIO
 from pathlib import Path
 
 import aiofiles
-
-from PIL import Image
 from aiohttp import ClientSession, ClientTimeout
+from PIL import Image
 
 from .config import PluginConfig
 
