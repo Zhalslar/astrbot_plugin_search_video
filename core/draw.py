@@ -1,5 +1,6 @@
 import asyncio
 from io import BytesIO
+
 from bs4 import BeautifulSoup
 from PIL import Image, ImageDraw, ImageFont
 
