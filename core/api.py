@@ -29,14 +29,17 @@ class VideoAPI:
         self.BILIBILI_SEARCH_API = (
             "https://api.bilibili.com/x/web-interface/search/type"
         )
+        self.BILIBILI_SEARCH_PAGE = "https://search.bilibili.com/all"
 
         self.BILIBILI_HEADER = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36",
-            "Referer": "https://www.bilibili.com",
-            "Origin": "https://www.bilibili.com",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+            "Referer": "https://search.bilibili.com/",
+            "Origin": "https://search.bilibili.com",
             "Accept": "application/json, text/plain, */*",
-            "Cookie": self.cfg.cookie,
         }
+        if self.cfg.cookie:
+            self.BILIBILI_HEADER["Cookie"] = self.cfg.cookie
+        self._bilibili_cookie_ready = bool(self.cfg.cookie)
         self.session = ClientSession(
             headers=self.BILIBILI_HEADER,
             timeout=ClientTimeout(total=self.cfg.download_timeout),
@@ -50,6 +53,7 @@ class VideoAPI:
         搜索视频
         """
         params = {"search_type": "video", "keyword": keyword, "page": page}
+        await self._ensure_bilibili_cookie(keyword)
 
         retries = self.cfg.retry_times
         for attempt in range(1, retries + 1):
@@ -78,6 +82,27 @@ class VideoAPI:
 
         logger.error("多次尝试后仍未获取到搜索结果")
         return []
+
+    async def _ensure_bilibili_cookie(self, keyword: str) -> None:
+        """Prime anonymous Bilibili cookies before calling the search API."""
+        if self._bilibili_cookie_ready:
+            return
+
+        try:
+            async with self.session.get(
+                self.BILIBILI_SEARCH_PAGE,
+                params={"keyword": keyword},
+                headers={
+                    "User-Agent": self.BILIBILI_HEADER["User-Agent"],
+                    "Referer": "https://www.bilibili.com/",
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                },
+            ) as response:
+                response.raise_for_status()
+                await response.read()
+            self._bilibili_cookie_ready = True
+        except Exception as e:
+            logger.warning(f"预热 B站匿名 Cookie 失败: {e}")
 
     async def get_video_info(self, video_id: str) -> dict | None:
         """获取单个视频的基础信息"""
