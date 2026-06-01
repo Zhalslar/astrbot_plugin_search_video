@@ -234,8 +234,22 @@ class VideoService:
             await upload_file(event, video_path)
             return
 
-        chain = [Video.fromFileSystem(str(video_path))]
+        chain = [Video.fromFileSystem(self._map_send_video_path(video_path))]
         await event.send(event.chain_result(chain))  # type: ignore[arg-type]
+
+    def _map_send_video_path(self, video_path: Path) -> str:
+        local_prefix = str(self.cfg.local_media_path_prefix or "").rstrip("/")
+        send_prefix = str(self.cfg.send_media_path_prefix or "").rstrip("/")
+        path = str(video_path)
+
+        if not local_prefix or not send_prefix:
+            return path
+
+        if path == local_prefix:
+            return send_prefix
+        if path.startswith(f"{local_prefix}/"):
+            return f"{send_prefix}{path[len(local_prefix):]}"
+        return path
 
     @staticmethod
     def _clean_video_text(value: str) -> str:
