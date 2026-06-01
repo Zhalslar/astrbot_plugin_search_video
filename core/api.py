@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 import aiofiles
-from aiohttp import ClientSession, ClientTimeout
+from aiohttp import ClientError, ClientSession, ClientTimeout
 from bilibili_api import Credential, video
 from bilibili_api.video import (
     AudioStreamDownloadURL,
@@ -93,15 +93,14 @@ class VideoAPI:
                 self.BILIBILI_SEARCH_PAGE,
                 params={"keyword": keyword},
                 headers={
-                    "User-Agent": self.BILIBILI_HEADER["User-Agent"],
-                    "Referer": "https://www.bilibili.com/",
+                    **self.BILIBILI_HEADER,
                     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                 },
             ) as response:
                 response.raise_for_status()
                 await response.read()
             self._bilibili_cookie_ready = True
-        except Exception as e:
+        except (ClientError, asyncio.TimeoutError) as e:
             logger.warning(f"预热 B站匿名 Cookie 失败: {e}")
 
     async def get_video_info(self, video_id: str) -> dict | None:
