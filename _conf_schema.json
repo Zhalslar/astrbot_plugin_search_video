@@ -75,17 +75,5 @@
         "description": "是否保存视频",
         "type": "bool",
         "hint": "保存路径为data/plugins_data/astrbot_plugin_search_video"
-    },
-    "local_media_path_prefix": {
-        "description": "本地媒体路径前缀",
-        "type": "text",
-        "hint": "可选。机器人进程看到的媒体文件路径前缀，留空则不转换路径。",
-        "default": ""
-    },
-    "send_media_path_prefix": {
-        "description": "发送媒体路径前缀",
-        "type": "text",
-        "hint": "可选。消息平台或容器内可访问的媒体文件路径前缀，留空则不转换路径。",
-        "default": ""
     }
 }

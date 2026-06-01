@@ -117,8 +117,6 @@ class PluginConfig(ConfigNode):
     show_download_prompt: bool
     retry_times: int
     is_save: bool
-    local_media_path_prefix: str
-    send_media_path_prefix: str
 
     _plugin_name = "astrbot_plugin_search_video"
 
