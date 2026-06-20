@@ -9,8 +9,10 @@ from typing import Any, Union, get_args, get_origin, get_type_hints
 from astrbot.api import logger
 from astrbot.core.config.astrbot_config import AstrBotConfig
 from astrbot.core.star.context import Context
-from astrbot.core.star.star_tools import StarTools
-from astrbot.core.utils.astrbot_path import get_astrbot_plugin_path
+from astrbot.core.utils.astrbot_path import (
+    get_astrbot_plugin_data_path,
+    get_astrbot_plugin_path,
+)
 
 
 class ConfigNode:
@@ -108,7 +110,8 @@ class ConfigNode:
 
 
 class PluginConfig(ConfigNode):
-    cookie: str
+    bilibili_cookie: str
+    douyin_cookie: str
     cards_per_row: int
     select_timeout: int
     download_timeout: int
@@ -123,7 +126,7 @@ class PluginConfig(ConfigNode):
     def __init__(self, cfg: AstrBotConfig, context: Context):
         super().__init__(cfg)
 
-        self.data_dir = StarTools.get_data_dir(self._plugin_name)
+        self.data_dir = Path(get_astrbot_plugin_data_path()) / self._plugin_name
         self.plugin_dir = Path(get_astrbot_plugin_path()) / self._plugin_name
 
         self.videos_dir = self.data_dir / "videos"

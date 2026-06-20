@@ -2,9 +2,9 @@ from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.star import Context, Star
 from astrbot.core.config.astrbot_config import AstrBotConfig
 
-from .core.command_video_flow import CommandVideoFlow
 from .core.config import PluginConfig
-from .core.llm_video_flow import LLMVideoFlow
+from .core.handlers.command_handle import CommandVideoFlow
+from .core.handlers.llm_handle import LLMVideoFlow
 from .core.video_service import VideoService
 
 
@@ -14,9 +14,7 @@ class VideoSearchPlugin(Star):
         self.context = context
         self.cfg = PluginConfig(config, context)
         self.video_service = VideoService(self.cfg)
-        self.command_flow = CommandVideoFlow(
-            self.context, self.cfg, self.video_service
-        )
+        self.command_flow = CommandVideoFlow(self.context, self.cfg, self.video_service)
         self.llm_flow = LLMVideoFlow(self.context, self.video_service)
 
     async def initialize(self):
@@ -25,10 +23,23 @@ class VideoSearchPlugin(Star):
     async def terminate(self):
         await self.video_service.close()
 
-    @filter.command("搜视频")
-    async def search_video_handle(self, event: AstrMessageEvent):
-        """搜视频 <关键词>"""
-        result = await self.command_flow.handle_search_command(event)
+    @filter.command("B站搜索",alias={"搜视频", "b站搜索"})
+    async def search_bilibili_handle(self, event: AstrMessageEvent):
+        """B站搜索 <关键词>"""
+        result = await self.command_flow.handle_search_command(
+            event,
+            platform="bilibili",
+        )
+        if result:
+            yield event.plain_result(result)
+
+    @filter.command("抖音搜索")
+    async def search_douyin_handle(self, event: AstrMessageEvent):
+        """抖音搜索 <关键词>"""
+        result = await self.command_flow.handle_search_command(
+            event,
+            platform="douyin",
+        )
         if result:
             yield event.plain_result(result)
 
