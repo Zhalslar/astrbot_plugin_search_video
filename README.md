@@ -1,16 +1,16 @@
-
 <div align="center">
 
 ![:name](https://count.getloli.com/@astrbot_plugin_search_video?name=astrbot_plugin_search_video&theme=minecraft&padding=6&offset=0&align=top&scale=1&pixelated=1&darkmode=auto)
 
 # astrbot_plugin_search_video
 
-_✨ 搜视频插件 ✨_  
+_✨ 搜视频插件 ✨_
 
 [![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![AstrBot](https://img.shields.io/badge/AstrBot-4.0%2B-orange.svg)](https://github.com/Soulter/AstrBot)
 [![GitHub](https://img.shields.io/badge/作者-Zhalslar-blue)](https://github.com/Zhalslar)
+
 </div>
 
 ## 🤝 介绍
@@ -51,9 +51,10 @@ sudo apt install ffmpeg
 
 指令表
 
-|     命令      |      说明       |
-|:-------------:|:-----------------------------:|
-| 搜视频 <关键词>     | 根据关键词搜索视频，然后发送序号“1” “2”等进行选择，发“页2” “页3”等进行翻页  |
+|      命令      |                                        说明                                        |
+| :-------------: | :--------------------------------------------------------------------------------: |
+| B站搜索 <关键词> | 搜索 B 站视频，然后发送序号“1” “2”等进行选择，发“页2” “页3”等进行翻页 |
+| 抖音搜索 <关键词> | 搜索抖音视频，然后发送序号“1” “2”等进行选择，发“页2” “页3”等进行翻页 |
 
 示例图
 ![download](https://github.com/user-attachments/assets/8d2fe20d-bf74-4411-b96c-0ab8da2a5910)

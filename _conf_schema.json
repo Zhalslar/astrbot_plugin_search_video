@@ -1,8 +1,13 @@
 {
-    "cookie": {
+    "bilibili_cookie": {
         "description": "B站cookie",
         "type": "text",
         "hint": "可以填也可以不填，理论上不影响，如果下载视频经常失败，可以填一下。"
+    },
+    "douyin_cookie": {
+        "description": "抖音cookie",
+        "type": "text",
+        "hint": "抖音搜索要求必须携带cookie, 否则无法搜索"
     },
     "cards_per_row": {
         "description": "候选菜单的列数",
