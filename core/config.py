@@ -112,6 +112,7 @@ class ConfigNode:
 class PluginConfig(ConfigNode):
     bilibili_cookie: str
     douyin_cookie: str
+    video_count_per_page: int
     cards_per_row: int
     select_timeout: int
     download_timeout: int

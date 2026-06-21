@@ -31,7 +31,9 @@ class BaseVideoSearcher(ABC):
         return None
 
     @abstractmethod
-    async def search_video(self, keyword: str, page: int = 1) -> list[VideoItem]:
+    async def search_video(
+        self, keyword: str, page: int = 1, count: int = 18
+    ) -> list[VideoItem]:
         raise NotImplementedError
 
     @abstractmethod

@@ -53,7 +53,7 @@ class VideoService:
         platform: str = "bilibili",
     ) -> list[dict]:
         return await self.get_searcher(platform).search_video(
-            keyword=keyword, page=page
+            keyword=keyword, page=page, count = self.cfg.video_count_per_page,
         )
 
     async def get_video_info(

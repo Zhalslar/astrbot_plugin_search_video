@@ -40,7 +40,12 @@ class DouyinSearcher(BaseVideoSearcher):
     async def close(self) -> None:
         await self.session.close()
 
-    async def search_video(self, keyword: str, page: int = 1) -> list[VideoItem]:
+    async def search_video(
+        self,
+        keyword: str,
+        page: int = 1,
+        count: int = 18,
+    ) -> list[VideoItem]:
         if not self.cfg.douyin_cookie.strip():
             logger.warning("douyin cookie is empty, skip douyin search")
             return []
@@ -56,7 +61,7 @@ class DouyinSearcher(BaseVideoSearcher):
             "cookie_enabled": "true",
             "keyword": keyword,
             "offset": str(max(page - 1, 0) * 10),
-            "count": "10",
+            "count": count,
             "sort_type": "0",
         }
         webid = self._extract_webid(self.cfg.douyin_cookie)

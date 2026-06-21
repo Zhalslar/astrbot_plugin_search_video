@@ -45,6 +45,24 @@ class VideoCardRenderer:
             return f"{count / 1000:.1f}k"
         return str(count)
 
+    @staticmethod
+    def _fit_thumb(
+        image: Image.Image,
+        width: int,
+        height: int,
+    ) -> Image.Image:
+        fitted = Image.new("RGB", (width, height), "#000000")
+        thumb = image.convert("RGB").copy()
+        if hasattr(Image, "Resampling"):
+            resample = Image.Resampling.LANCZOS
+        else:
+            resample = Image.LANCZOS # type: ignore
+        thumb.thumbnail((width, height), resample)
+        x = (width - thumb.width) // 2
+        y = (height - thumb.height) // 2
+        fitted.paste(thumb, (x, y))
+        return fitted
+
     async def draw_card(
         self,
         video: dict,
@@ -69,7 +87,7 @@ class VideoCardRenderer:
                 (theme.card_width, theme.thumb_height),
                 "#e5e5e5",
             )
-            thumb = thumb.resize((theme.card_width, theme.thumb_height))
+            thumb = self._fit_thumb(thumb, theme.card_width, theme.thumb_height)
             card.paste(thumb, (0, 0))
 
             alpha_gradient = Image.new(
