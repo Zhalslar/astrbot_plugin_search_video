@@ -51,7 +51,12 @@ class BilibiliSearcher(BaseVideoSearcher):
     async def close(self) -> None:
         await self.session.close()
 
-    async def search_video(self, keyword: str, page: int = 1) -> list[VideoItem]:
+    async def search_video(
+        self,
+        keyword: str,
+        page: int = 1,
+        count: int = 18,
+    ) -> list[VideoItem]:
         params = {"search_type": "video", "keyword": keyword, "page": page}
         retries = self.cfg.retry_times
 
@@ -80,7 +85,7 @@ class BilibiliSearcher(BaseVideoSearcher):
                 continue
 
             if data.get("code") == 0:
-                rows = data.get("data", {}).get("result", [])
+                rows = data.get("data", {}).get("result", [])[:count]
                 normalized: list[VideoItem] = []
                 for row in rows:
                     item = self._normalize_search_item(row)

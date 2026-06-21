@@ -9,6 +9,17 @@
         "type": "text",
         "hint": "必填, 抖音搜索要求必须携带cookie, 否则无法搜索"
     },
+    "video_count_per_page": {
+        "description": "候选视频数量",
+        "type": "int",
+        "hint": "决定每次搜索返回的候选视频数量",
+        "slider": {
+            "min": 2,
+            "max": 20,
+            "step": 1
+        },
+        "default": 18
+    },
     "cards_per_row": {
         "description": "候选菜单的列数",
         "type": "int",
